@@ -112,6 +112,60 @@ class Menu:
 		y = self.dest_surface.get_rect().centery - self.menu_height / 2
 		mx, my = self.position
 		self.position = (x + mx, y + my)
+class textScore(Score):
+    def draw(self, position):
+        if self.player == 1:
+            self.position = (20, (HEIGHT_RES/2)-70)
+        elif self.player == 2:
+            self.position = (WIDTH_RES-40, (HEIGHT_RES/2)+70)
+        elif self.player == 3:
+            self.position = ((WIDTH_RES/2)+70, 20)
+        elif self.player == 4:
+            self.position = ((WIDTH_RES/2)-70, HEIGHT_RES-40)
+        self.font = pygame.font.Font("pixelated_bold.ttf", 36)
+        self.render()
+        self.rect = self.image.get_rect()
+        self.rect.center = self.position
+	
+
+class Score(Sprite):
+    def __init__(self, position, player):
+        pygame.sprite.Sprite.__init__(self)
+        self.color = pygame.Color("white")
+        self.player = player
+        self.score = 0
+        self.draw(position)
+
+    def draw(self, position):
+        self.position = position
+        self.image = pygame.image.load('images/background.png')
+        self.rect = self.image.get_rect()
+        self.render()
+        self.rect.topleft = position
+
+    def render(self):
+        if self.player <= 2:
+            self.image = self.image
+        else:
+            self.image = self.image
+        self.rect = self.image.get_rect()
+        self.rect.topleft = self.position
+        for i in range (0, self.score):
+            if self.player <= 2:
+                pygame.draw.circle(self.image, self.color, (13, (i*20)+13), 10)
+                pygame.draw.circle(self.image, pygame.Color("black"), (13, (i*20)+13), 10, 1)
+            else:
+                pygame.draw.circle(self.image, self.color, ((i*20)+13, 13), 10)
+                pygame.draw.circle(self.image, pygame.Color("black"), (13, (i*20)+13), 10, 1)
+
+    def increase(self):
+        self.score += 1
+        self.render()
+
+    def decrease(self):
+        self.score -= 2
+        self.render()
+
 
 class Hippo(Sprite):
 
@@ -247,12 +301,15 @@ class Ball(Sprite):
 
 
 class damageBall(Ball):
-	def setImage(self):
-		self.image = pygame.image.load("Images/Bom.png")
-	def setVelocity(self, side, angle):
-		self.velocity = [side * 10 * math.cos(angle), 10 * math.sin(angle)]
-	def adjustScore(self, player):
-		self.score[player-1].decrease()
+
+    def setImage(self):
+        self.image = pygame.image.load('Images/Bom.png')
+
+    def setVelocity(self, side, angle):
+        self.velocity = [side * 30 * math.cos(angle), 10 * math.sin(angle)]
+
+    def adjustScore(self, player):
+        self.score[player-player].decrease()
 
 class Score(Sprite):
 	def __init__(self, color, position, player):
@@ -283,6 +340,25 @@ class Score(Sprite):
 		self.render_balls()
 		
 def main():
+
+
+    global totalScore
+    totalScore = 0
+    players = 0
+    counter = 0
+    clock = pygame.time.Clock()
+    icon = pygame.transform.scale(pygame.image.load('Images/Hippo1.png'), (32, 32))
+    pygame.display.set_icon(icon)
+    screen = pygame.display.set_mode((WIDTH_RES, HEIGHT_RES))
+    pygame.display.set_caption('Scratchimbo 3.1')
+    background = pygame.image.load('Images/background.png')
+    game_menu = True
+    player_menu = True
+    running_game = True
+    win_menu = True
+    apocalypse = False
+    multiplayer = False
+    singleplayer = False
 	def nop():
 		pass
 
@@ -315,7 +391,7 @@ def main():
 	running_game = True
 	win_menu = True
 
-	# INITAL GAME LOOP PRESENTING MENU
+	
 	while start_menu:
 		clock.tick(60)
 		pygame.display.flip()
@@ -339,13 +415,28 @@ def main():
 						players = 4
 					start_menu = False
 
-	# THIS RUNS WHEN NUMBER OF PLAYERS HAS BEEN CHOSEN
-	# RESET SCREEN
+	
 	screen = pygame.display.set_mode((WIDTH_RES, HEIGHT_RES))
 	background = pygame.image.load('Images/background.png')
 	screen.blit(background,(0, 0))
+	if singleplayer:
+        score1 = createScore((20, 24), 1, apocalypse)
+        score2 = createScore(((WIDTH_RES-40, (HEIGHT_RES/2)+60)), 2, apocalypse)
+        score3 = createScore(((WIDTH_RES/2)+70, 20), 3, apocalypse)
+        score4 = createScore((10, HEIGHT_RES-40), 4, apocalypse)
+        scoreList = [score1, score2, score3, score4]
 
-	# INITIALIZE SPRITES BASED ON PLAYERS
+        player1 = Hippo((0, (HEIGHT_RES/2)-50), 1)
+        auto1 = autoHippo((WIDTH_RES-100, (HEIGHT_RES/2)-50), 2)
+        auto2 = autoHippo(((WIDTH_RES/2)-50, 0), 3)
+        auto3 = autoHippo(((WIDTH_RES/2)-50, HEIGHT_RES-100), 4)
+        playerList = [player1, auto1, auto2, auto3]
+        autoHippoList = [auto1, auto2, auto3]
+        key_map = {
+            pygame.K_q: [player1.forward, player1.back]
+        }
+
+	
 	if players >= 2:
 		score1 = Score("white", (20, 10), 1)
 		score2 = Score("white", ((WIDTH_RES-40, (HEIGHT_RES/2)+70)), 2)
@@ -426,23 +517,25 @@ def main():
 	menu.draw()
 
 	while win_menu:
-		clock.tick(60)
-		pygame.display.flip()
+	 
+        clock.tick(60)
+        pygame.display.flip()
 
-		for event in pygame.event.get():
-			if event.type == pygame.QUIT:
-				win_menu = False
-			elif event.type == pygame.KEYDOWN:
-				if event.key == pygame.K_UP:
-					menu.draw(-1)
-				elif event.key == pygame.K_DOWN:
-					menu.draw(1)
-				elif event.key == pygame.K_RETURN:
-					if menu.get_position() == 1:
-						main()
-						win_menu = False
-					elif menu.get_position() == 2:
-						win_menu = False
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                win_menu = False
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_UP:
+                    menu.draw(-1)
+                elif event.key == pygame.K_DOWN:
+                    menu.draw(1)
+                elif event.key == pygame.K_RETURN:
+                    if menu.get_position() == 1:
+                        main()
+                        win_menu = False
+                    elif menu.get_position() == 2:
+                        win_menu = False
+
 
 if __name__ == "__main__":
 	main()
